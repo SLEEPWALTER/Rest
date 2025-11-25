@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+
+<!-- TOP NAVBAR -->
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <span class="navbar-text text-white" id="currentUserInfo">
+            Loading...
+        </span>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button class="btn btn-outline-light btn-sm">Logout</button>
+        </form>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- SIDEBAR -->
+        <div class="col-2 px-0 bg-light border-end" style="height: 100vh;">
+            <ul class="nav flex-column nav-pills mt-3">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" th:href="@{/admin}">Admin</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/user}">User</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="col-10 px-4">
+            <h2 class="mt-3 mb-3">Admin panel</h2>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Users table</h5>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        New User
+                    </button>
+                </div>
+
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Age</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                        <!-- Данные будут загружены через JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal для добавления нового пользователя -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add new user</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="age" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="age" name="age" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <div id="addRoleCheckboxes">
+                            <!-- Роли будут загружены через JavaScript -->
+                        </div>
+                        <div class="text-danger" id="roleError" style="display: none;">Please select at least one role</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add new user</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal для редактирования пользователя -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Edit user</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editUserForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId" name="id">
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="editUsername" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAge" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="editAge" name="age" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPassword" class="form-label">Password (leave empty to keep current)</label>
+                        <input type="password" class="form-control" id="editPassword" name="password" placeholder="Leave empty to keep current password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <div id="editRoleCheckboxes">
+                            <!-- Роли будут загружены через JavaScript -->
+                        </div>
+                        <div class="text-danger" id="editRoleError" style="display: none;">Please select at least one role</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Edit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal для удаления пользователя -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Delete user</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">ID</label>
+                    <div id="deleteUserId" class="form-control-plaintext border-bottom pb-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Username</label>
+                    <div id="deleteUsername" class="form-control-plaintext border-bottom pb-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Age</label>
+                    <div id="deleteAge" class="form-control-plaintext border-bottom pb-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email</label>
+                    <div id="deleteEmail" class="form-control-plaintext border-bottom pb-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Role</label>
+                    <div id="deleteRoles" class="form-control-plaintext border-bottom pb-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let currentUser = null;
+    let allRoles = [];
+    let users = [];
+
+    // Инициализация при загрузке страницы
+    $(document).ready(function() {
+        loadCurrentUser();
+        loadRoles();
+        loadUsers();
+        setupEventHandlers();
+    });
+
+    // Загрузка текущего пользователя
+    async function loadCurrentUser() {
+        try {
+            const response = await fetch('/api/auth/current-user');
+            if (response.ok) {
+                currentUser = await response.json();
+                displayCurrentUserInfo();
+            }
+        } catch (error) {
+            console.error('Error loading current user:', error);
+        }
+    }
+
+    // Загрузка всех ролей
+    async function loadRoles() {
+        try {
+            const response = await fetch('/api/roles');
+            if (response.ok) {
+                allRoles = await response.json();
+                renderRoleCheckboxes();
+            }
+        } catch (error) {
+            console.error('Error loading roles:', error);
+        }
+    }
+
+    // Загрузка всех пользователей
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                users = await response.json();
+                renderUsersTable();
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    // Отображение информации о текущем пользователе
+    function displayCurrentUserInfo() {
+        if (currentUser) {
+            const roles = currentUser.authorities ?
+                currentUser.authorities.map(auth => auth.authority).join(' ') : '';
+            $('#currentUserInfo').html(`
+                <b>${currentUser.username}</b>
+                <span>with roles:</span>
+                <span>${roles}</span>
+            `);
+        }
+    }
+
+    // Рендер чекбоксов ролей
+    function renderRoleCheckboxes() {
+        const addContainer = $('#addRoleCheckboxes');
+        const editContainer = $('#editRoleCheckboxes');
+
+        addContainer.empty();
+        editContainer.empty();
+
+        allRoles.forEach(role => {
+            const checkboxHtml = `
+                <div class="form-check">
+                    <input class="form-check-input role-checkbox" type="checkbox"
+                           value="${role.id}" id="role_${role.id}" name="roleIds">
+                    <label class="form-check-label" for="role_${role.id}">
+                        ${role.name}
+                    </label>
+                </div>
+            `;
+            addContainer.append(checkboxHtml);
+            editContainer.append(checkboxHtml.replace(/role_/g, 'editRole_'));
+        });
+    }
+
+    // Рендер таблицы пользователей
+    function renderUsersTable() {
+        const tbody = $('#usersTableBody');
+        tbody.empty();
+
+        users.forEach(user => {
+            const roles = user.roles.map(role => role.name).join(', ');
+            const row = `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.age}</td>
+                    <td>${user.email}</td>
+                    <td>${roles}</td>
+                    <td>
+                        <button type="button" class="btn btn-warning btn-sm edit-btn"
+                                data-id="${user.id}">Edit</button>
+                        <button type="button" class="btn btn-danger btn-sm delete-btn"
+                                data-id="${user.id}">Delete</button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    // Настройка обработчиков событий
+    function setupEventHandlers() {
+        // Добавление пользователя
+        $('#addUserForm').on('submit', async function(e) {
+            e.preventDefault();
+            await createUser();
+        });
+
+        // Редактирование пользователя
+        $('#editUserForm').on('submit', async function(e) {
+            e.preventDefault();
+            await updateUser();
+        });
+
+        // Подтверждение удаления
+        $('#confirmDeleteBtn').on('click', async function() {
+            await deleteUser();
+        });
+
+        // Обработчики для динамически созданных кнопок
+        $(document).on('click', '.edit-btn', function() {
+            const userId = $(this).data('id');
+            openEditModal(userId);
+        });
+
+        $(document).on('click', '.delete-btn', function() {
+            const userId = $(this).data('id');
+            openDeleteModal(userId);
+        });
+
+        // Валидация ролей
+        $(document).on('change', '.role-checkbox', function() {
+            const form = $(this).closest('form');
+            const roleError = form.attr('id') === 'addUserForm' ?
+                $('#roleError') : $('#editRoleError');
+            roleError.hide();
+        });
+
+        // Очистка форм при закрытии модальных окон
+        $('#addUserModal').on('hidden.bs.modal', function() {
+            $('#addUserForm')[0].reset();
+            $('#roleError').hide();
+        });
+
+        $('#editUserModal').on('hidden.bs.modal', function() {
+            $('#editUserForm')[0].reset();
+            $('#editRoleError').hide();
+        });
+    }
+
+    // Создание пользователя
+    async function createUser() {
+        if (!validateRoles('addUserForm')) return;
+
+        const formData = new FormData($('#addUserForm')[0]);
+        const userData = Object.fromEntries(formData);
+        const roleIds = $('#addUserForm input[name="roleIds"]:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+
+        try {
+            const response = await fetch('/api/users?roleIds=' + roleIds.join('&roleIds='), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                $('#addUserModal').modal('hide');
+                await loadUsers(); // Перезагружаем таблицу
+                showAlert('User created successfully!', 'success');
+            } else {
+                showAlert('Error creating user!', 'danger');
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            showAlert('Error creating user!', 'danger');
+        }
+    }
+
+    // Обновление пользователя
+    async function updateUser() {
+        if (!validateRoles('editUserForm')) return;
+
+        const formData = new FormData($('#editUserForm')[0]);
+        const userData = Object.fromEntries(formData);
+        const userId = $('#editUserId').val();
+        const roleIds = $('#editUserForm input[name="roleIds"]:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+
+        // Если пароль пустой, удаляем его из данных
+        if (!userData.password) {
+            delete userData.password;
+        }
+
+        try {
+            const response = await fetch(`/api/users/${userId}?roleIds=` + roleIds.join('&roleIds='), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                $('#editUserModal').modal('hide');
+                await loadUsers(); // Перезагружаем таблицу
+                showAlert('User updated successfully!', 'success');
+            } else {
+                showAlert('Error updating user!', 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            showAlert('Error updating user!', 'danger');
+        }
+    }
+
+    // Удаление пользователя
+    async function deleteUser() {
+        const userId = $('#deleteUserId').text();
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                $('#deleteUserModal').modal('hide');
+                await loadUsers(); // Перезагружаем таблицу
+                showAlert('User deleted successfully!', 'success');
+            } else {
+                showAlert('Error deleting user!', 'danger');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showAlert('Error deleting user!', 'danger');
+        }
+    }
+
+    // Открытие модального окна редактирования
+    async function openEditModal(userId) {
+        try {
+            const response = await fetch(`/api/users/${userId}`);
+            if (response.ok) {
+                const user = await response.json();
+
+                $('#editUserId').val(user.id);
+                $('#editUsername').val(user.username);
+                $('#editAge').val(user.age);
+                $('#editEmail').val(user.email);
+
+                // Сбрасываем чекбоксы ролей
+                $('#editUserForm input[name="roleIds"]').prop('checked', false);
+
+                // Устанавливаем выбранные роли
+                user.roles.forEach(role => {
+                    $(`#editUserForm input[value="${role.id}"]`).prop('checked', true);
+                });
+
+                $('#editRoleError').hide();
+                new bootstrap.Modal(document.getElementById('editUserModal')).show();
+            }
+        } catch (error) {
+            console.error('Error loading user for edit:', error);
+        }
+    }
+
+    // Открытие модального окна удаления
+    function openDeleteModal(userId) {
+        const user = users.find(u => u.id == userId);
+        if (user) {
+            const roles = user.roles.map(role => role.name).join(', ');
+
+            $('#deleteUserId').text(user.id);
+            $('#deleteUsername').text(user.username);
+            $('#deleteAge').text(user.age);
+            $('#deleteEmail').text(user.email);
+            $('#deleteRoles').text(roles);
+
+            new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+        }
+    }
+
+    // Валидация ролей
+    function validateRoles(formId) {
+        const checkedCount = $(`#${formId} input[name="roleIds"]:checked`).length;
+        const roleError = formId === 'addUserForm' ? $('#roleError') : $('#editRoleError');
+
+        if (checkedCount === 0) {
+            roleError.show();
+            return false;
+        } else {
+            roleError.hide();
+            return true;
+        }
+    }
+
+    // Показать уведомление
+    function showAlert(message, type) {
+        const alert = $(`
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('.container-fluid .row .col-10').prepend(alert);
+
+        setTimeout(() => {
+            alert.alert('close');
+        }, 3000);
+    }
+</script>
+
+</body>
+</html>
