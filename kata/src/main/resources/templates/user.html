@@ -1,95 +1,113 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>User page</title>
+    <title>User Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
 
-<!-- TOP NAVBAR -->
 <nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
-        <span class="navbar-text text-white">
-            <b th:text="${currentUser.username}"></b>
-            <span>with roles:</span>
-            <span th:each="r : ${currentUser.roles}" th:text="${r.name} + ' '"></span>
+        <span class="navbar-text text-white" id="userInfo">
+            User Panel
         </span>
-
-        <form th:action="@{/logout}" method="post">
-            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button class="btn btn-outline-light btn-sm">Logout</button>
         </form>
     </div>
 </nav>
 
 <div class="container-fluid">
     <div class="row">
-
-        <!-- SIDEBAR -->
         <div class="col-2 px-0 bg-light border-end" style="height: 100vh;">
-            <ul class="nav flex-column nav-pills mt-3">
-
+            <ul class="nav flex-column nav-pills mt-3" id="sidebarMenu">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" th:href="@{/user}">
-                        User
-                    </a>
+                    <a class="nav-link active" href="/user">User</a>
                 </li>
-
-                <!-- показываем ссылку Admin только если есть роль ADMIN -->
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/admin}">
-                        Admin
-                    </a>
-                </li>
-
+                <!-- Admin ссылка будет добавлена если есть роль -->
             </ul>
         </div>
 
-        <!-- MAIN CONTENT -->
-        <div class="col-10 px-4">
-
-            <h2 class="mt-3 mb-3">User information-page</h2>
+        <div class="col-10 px-4 mt-4">
+            <h2>User Panel</h2>
 
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">About user</h5>
+                    <h5 class="mb-0">Your Information</h5>
                 </div>
-
                 <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Age</th>
-                            <th>Email</th>
-                            <th>Roles</th>
-                        </tr>
-                        </thead>
-
-                        <tbody>
-                        <tr>
-                            <td th:text="${currentUser.id}"></td>
-                            <td th:text="${currentUser.username}"></td>
-                            <td th:text="${currentUser.age}"></td>
-                            <td th:text="${currentUser.email}"></td>
-
-                            <td>
-                                <span th:each="role : ${currentUser.roles}"
-                                      th:text="${role.name} + ' '">
-                                </span>
-                            </td>
-                        </tr>
-                        </tbody>
-
-                    </table>
+                    <div id="userData">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
+
+<script>
+    // Загрузка данных пользователя
+    async function loadUserData() {
+        try {
+            const response = await fetch('/api/auth/current-user');
+            if (!response.ok) return;
+
+            const user = await response.json();
+            displayUserData(user);
+            updateSidebar(user);
+        } catch (error) {
+            console.log('Error loading user data');
+        }
+    }
+
+    // Отображение данных
+    function displayUserData(user) {
+        const div = document.getElementById('userData');
+        let html = '';
+
+        if (user.username) {
+            html = `
+                <p><strong>Username:</strong> ${user.username}</p>
+                <p><strong>Email:</strong> ${user.email || 'Not specified'}</p>
+                <p><strong>Age:</strong> ${user.age || 'Not specified'}</p>
+            `;
+        } else if (user.authorities) {
+            const roles = user.authorities.map(a => a.authority).join(', ');
+            html = `
+                <p><strong>Username:</strong> ${user.username || 'User'}</p>
+                <p><strong>Roles:</strong> ${roles}</p>
+            `;
+        }
+
+        div.innerHTML = html;
+    }
+
+    // Обновление sidebar
+    function updateSidebar(user) {
+        const sidebar = document.getElementById('sidebarMenu');
+
+        // Проверяем есть ли роль ADMIN
+        const hasAdmin = user.roles?.some(r => r.name.includes('ADMIN')) ||
+            user.authorities?.some(a => a.authority.includes('ADMIN'));
+
+        if (hasAdmin) {
+            const adminItem = document.createElement('li');
+            adminItem.className = 'nav-item';
+            adminItem.innerHTML = '<a class="nav-link" href="/admin">Admin</a>';
+            sidebar.appendChild(adminItem);
+        }
+    }
+
+    // Загрузка при старте
+    document.addEventListener('DOMContentLoaded', loadUserData);
+</script>
+
 </body>
 </html>

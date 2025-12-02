@@ -18,4 +18,6 @@ public class AuthRestController {
         }
         return ResponseEntity.ok(authentication.getPrincipal());
     }
+
+
 }
